@@ -7,6 +7,8 @@ an MCP server. Both produce the same PDF in the same format.
 
 [![Sample resume: John Doe](examples/John_Doe_Resume.png)](examples/John_Doe_Resume.pdf)
 
+**Try the editor:** https://resume-template-dun-one.vercel.app. It opens on the sample; your edits stay in your browser.
+
 <sub>The fictional sample above is generated from [`data/sample.json`](data/sample.json); the PDF is [`examples/John_Doe_Resume.pdf`](examples/John_Doe_Resume.pdf).</sub>
 
 ```
