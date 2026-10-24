@@ -1,0 +1,107 @@
+{
+  "$schema": "../schema/resume.schema.json",
+  "meta": {
+    "paper": "a4",
+    "sectionOrder": ["skills", "experience", "projects", "education", "achievements"]
+  },
+  "basics": {
+    "name": "John Doe",
+    "email": "john.doe@example.com",
+    "phone": "+1 555 010 0199",
+    "links": [
+      { "label": "GitHub", "url": "https://example.com/github/johndoe" },
+      { "label": "LinkedIn", "url": "https://example.com/linkedin/johndoe" },
+      { "label": "Portfolio", "url": "https://example.com/johndoe" }
+    ]
+  },
+  "skills": [
+    {
+      "category": "Languages",
+      "items": ["Python", "Go", "TypeScript", "SQL", "Bash"]
+    },
+    {
+      "category": "Backend & Data",
+      "items": ["FastAPI", "Django", "gRPC", "PostgreSQL", "Redis", "Kafka", "Elasticsearch"]
+    },
+    {
+      "category": "AI / ML",
+      "items": ["LLM APIs", "RAG", "Embeddings", "Evaluation Harnesses", "Prompt Engineering"]
+    },
+    {
+      "category": "Cloud & DevOps",
+      "items": ["AWS (ECS, Lambda, RDS, S3)", "Docker", "Kubernetes", "Terraform", "GitHub Actions", "Prometheus", "Grafana"]
+    }
+  ],
+  "experience": [
+    {
+      "company": "Acme Corp",
+      "role": "Senior Software Engineer",
+      "location": "San Francisco, CA (Hybrid)",
+      "start": "Mar 2023",
+      "end": "Present",
+      "bullets": [
+        { "text": "Led the redesign of the **order-processing service** (Go, **Kafka**, PostgreSQL), cutting **p99 latency from 1.2s to 180ms** and handling **3x peak traffic** during seasonal sales without new hardware." },
+        { "text": "Built an **LLM-powered support triage pipeline** with retrieval over 40K help articles and an **offline evaluation harness**, routing **62% of tickets** automatically at **95% precision**." },
+        { "text": "Introduced **SLO-based alerting** with Prometheus and Grafana across 14 services, reducing pager noise by **70%** and mean time to recovery from 48 to **12 minutes**." },
+        { "text": "Mentored **4 engineers** and ran the backend design-review forum, standardising API versioning and idempotency patterns." }
+      ]
+    },
+    {
+      "company": "Globex Analytics",
+      "role": "Software Engineer",
+      "location": "Austin, TX (Remote)",
+      "start": "Jul 2020",
+      "end": "Feb 2023",
+      "bullets": [
+        { "text": "Developed a **multi-tenant reporting API** (Python, **FastAPI**, Elasticsearch) serving **2M+ queries/day** for 300 enterprise customers, with per-tenant rate limits, caching and audit logging." },
+        { "text": "Migrated nightly batch ETL to **event-driven ingestion** on AWS Lambda and S3, cutting data freshness from 24 hours to **under 5 minutes** and removing a 6-hour maintenance window." },
+        { "text": "Cut monthly **AWS spend by $18K** through right-sizing RDS instances, S3 lifecycle policies and reserved capacity." },
+        { "text": "Wrote internal tooling for schema migrations that eliminated manual release steps.", "hidden": true }
+      ]
+    },
+    {
+      "company": "Initech",
+      "role": "Software Engineering Intern",
+      "location": "Seattle, WA",
+      "start": "May 2019",
+      "end": "Aug 2019",
+      "bullets": [
+        { "text": "Built a **feature-flag service** (Django, **Redis**) adopted by 6 product teams, enabling gradual rollouts and instant kill switches." },
+        { "text": "Added **contract tests** to the payments client, catching 9 breaking changes before release." }
+      ]
+    }
+  ],
+  "projects": [
+    {
+      "name": "LedgerLite",
+      "url": "https://example.com/johndoe/ledgerlite",
+      "description": "Open-source double-entry bookkeeping API in **Go** with **event sourcing**, **PostgreSQL** projections and a **TypeScript SDK**; 1.2K GitHub stars and 30+ contributors."
+    },
+    {
+      "name": "PaperTrail",
+      "url": "https://example.com/johndoe/papertrail",
+      "description": "Semantic search over research papers using **embeddings**, **hybrid BM25 + vector ranking** and a small **RAG** answer layer; evaluated on 500 labelled queries (**nDCG@10 0.71**)."
+    }
+  ],
+  "education": [
+    {
+      "institution": "State University",
+      "degree": "B.S. in Computer Science, GPA 3.8/4.0",
+      "start": "Aug 2016",
+      "end": "May 2020",
+      "details": [
+        { "text": "Coursework: Distributed Systems, Databases, Machine Learning, Algorithms. Teaching assistant for **Operating Systems**." }
+      ]
+    }
+  ],
+  "custom": [
+    {
+      "key": "achievements",
+      "title": "Achievements",
+      "bullets": [
+        { "text": "**1st place**, Acme internal hackathon 2024: on-call assistant that summarises incidents from logs and runbooks." },
+        { "text": "Speaker at **GopherCon 2023**: \"Backpressure patterns for Kafka consumers in Go\"." }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,434 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "meta": {
+      "type": "object",
+      "properties": {
+        "paper": {
+          "type": "string",
+          "enum": [
+            "a4",
+            "us-letter"
+          ]
+        },
+        "maxPages": {
+          "description": "Lint fails above this. Default 1.",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "fontSize": {
+          "description": "Body size in pt. Default 10.",
+          "type": "number",
+          "minimum": 7,
+          "maximum": 14
+        },
+        "fonts": {
+          "description": "Font fallback list. Default [\"Carlito\", \"Calibri\"].",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "colors": {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string",
+              "pattern": "^#[0-9a-fA-F]{6}$"
+            },
+            "contact": {
+              "type": "string",
+              "pattern": "^#[0-9a-fA-F]{6}$"
+            },
+            "heading": {
+              "type": "string",
+              "pattern": "^#[0-9a-fA-F]{6}$"
+            },
+            "entry": {
+              "type": "string",
+              "pattern": "^#[0-9a-fA-F]{6}$"
+            },
+            "text": {
+              "type": "string",
+              "pattern": "^#[0-9a-fA-F]{6}$"
+            },
+            "rule": {
+              "type": "string",
+              "pattern": "^#[0-9a-fA-F]{6}$"
+            }
+          },
+          "additionalProperties": false
+        },
+        "margin": {
+          "description": "In pt.",
+          "type": "object",
+          "properties": {
+            "top": {
+              "type": "number"
+            },
+            "bottom": {
+              "type": "number"
+            },
+            "left": {
+              "type": "number"
+            },
+            "right": {
+              "type": "number"
+            }
+          },
+          "additionalProperties": false
+        },
+        "spacing": {
+          "description": "Vertical gaps in pt; see template/resume.typ for defaults.",
+          "type": "object",
+          "propertyNames": {
+            "type": "string",
+            "enum": [
+              "leading",
+              "paragraph",
+              "bullet",
+              "name-contact",
+              "section-before",
+              "title-rule",
+              "rule-content",
+              "entry-title-sub",
+              "entry-sub-bullets",
+              "entry-gap",
+              "project-desc"
+            ]
+          },
+          "additionalProperties": {
+            "type": "number"
+          }
+        },
+        "sectionOrder": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "sectionTitles": {
+          "type": "object",
+          "propertyNames": {
+            "type": "string",
+            "enum": [
+              "skills",
+              "experience",
+              "education",
+              "projects"
+            ]
+          },
+          "additionalProperties": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "basics": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "email": {
+          "type": "string",
+          "format": "email",
+          "pattern": "^(?:[A-Za-z0-9_'+\\-]+\\.)*[A-Za-z0-9_'+\\-]*[A-Za-z0-9_+-]@(?:[A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
+        },
+        "phone": {
+          "type": "string"
+        },
+        "links": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "label": {
+                "type": "string",
+                "minLength": 1,
+                "description": "Text shown in the contact line, e.g. \"Github\"."
+              },
+              "url": {
+                "type": "string",
+                "format": "uri"
+              },
+              "hidden": {
+                "description": "Keep the item in the file but leave it out of the PDF.",
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "label",
+              "url"
+            ],
+            "additionalProperties": false
+          }
+        }
+      },
+      "required": [
+        "name"
+      ],
+      "additionalProperties": false
+    },
+    "skills": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "category": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Bold label before the colon, e.g. \"AI / LLM\"."
+          },
+          "items": {
+            "minItems": 1,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "hidden": {
+            "description": "Keep the item in the file but leave it out of the PDF.",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "category",
+          "items"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "experience": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "company": {
+            "type": "string",
+            "minLength": 1
+          },
+          "role": {
+            "type": "string"
+          },
+          "location": {
+            "type": "string"
+          },
+          "start": {
+            "description": "As displayed, e.g. \"June 2025\".",
+            "type": "string"
+          },
+          "end": {
+            "description": "As displayed, e.g. \"Present\".",
+            "type": "string"
+          },
+          "bullets": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "text": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "Plain text. `**bold**` is the only markup."
+                },
+                "hidden": {
+                  "description": "Keep the item in the file but leave it out of the PDF.",
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "text"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "hidden": {
+            "description": "Keep the item in the file but leave it out of the PDF.",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "company"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "education": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "institution": {
+            "type": "string",
+            "minLength": 1
+          },
+          "degree": {
+            "type": "string"
+          },
+          "location": {
+            "type": "string"
+          },
+          "start": {
+            "description": "As displayed, e.g. \"June 2025\".",
+            "type": "string"
+          },
+          "end": {
+            "description": "As displayed, e.g. \"Present\".",
+            "type": "string"
+          },
+          "details": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "text": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "Plain text. `**bold**` is the only markup."
+                },
+                "hidden": {
+                  "description": "Keep the item in the file but leave it out of the PDF.",
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "text"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "hidden": {
+            "description": "Keep the item in the file but leave it out of the PDF.",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "institution"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "projects": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "url": {
+            "type": "string",
+            "format": "uri"
+          },
+          "urlLabel": {
+            "description": "Text shown instead of the raw URL.",
+            "type": "string"
+          },
+          "start": {
+            "description": "As displayed, e.g. \"June 2025\".",
+            "type": "string"
+          },
+          "end": {
+            "description": "As displayed, e.g. \"Present\".",
+            "type": "string"
+          },
+          "description": {
+            "type": "string",
+            "description": "Plain text. `**bold**` is the only markup."
+          },
+          "bullets": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "text": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "Plain text. `**bold**` is the only markup."
+                },
+                "hidden": {
+                  "description": "Keep the item in the file but leave it out of the PDF.",
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "text"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "hidden": {
+            "description": "Keep the item in the file but leave it out of the PDF.",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "custom": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9-]*$",
+            "description": "Referenced from meta.sectionOrder."
+          },
+          "title": {
+            "type": "string",
+            "minLength": 1
+          },
+          "bullets": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "text": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "Plain text. `**bold**` is the only markup."
+                },
+                "hidden": {
+                  "description": "Keep the item in the file but leave it out of the PDF.",
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "text"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "hidden": {
+            "description": "Keep the item in the file but leave it out of the PDF.",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "key",
+          "title",
+          "bullets"
+        ],
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": [
+    "basics"
+  ],
+  "additionalProperties": false
+}

@@ -1,0 +1,9 @@
+node_modules/
+dist/
+out/
+.DS_Store
+
+# Personal data stays local: the public repo ships the John Doe sample instead.
+data/base.json
+data/variants/
+/*.pdf
