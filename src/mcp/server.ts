@@ -7,7 +7,8 @@ import path from 'node:path'
 import type { Operation } from 'fast-json-patch'
 import { z } from 'zod'
 import {
-  build, check, createVariant, diff, InvalidResume, jsonSchema, listResumes, load, patch, replace, ROOT,
+  build, check, createVariant, diff, InvalidResume, jsonSchema, listResumes, load, patch, replace, resolveResume,
+  ROOT,
 } from '../core/index.ts'
 
 const server = new McpServer({ name: 'resume', version: '1.0.0' })
@@ -69,7 +70,10 @@ server.registerTool('apply_resume_patch', {
     })),
   },
 }, guard(({ ref, operations }: { ref: string; operations: unknown[] }) => {
-  if (ref === 'base') throw new Error('Refusing to patch base; create_variant first (or use update_resume on base when the user asks to change the master).')
+  const { kind } = resolveResume(ref)
+  if (kind === 'base' || kind === 'sample') {
+    throw new Error(`Refusing to patch ${kind}; create_variant first (or use update_resume on base when the user asks to change the master).`)
+  }
   const resume = patch(ref, operations as Operation[])
   return { saved: true, lint: check(resume) }
 }))

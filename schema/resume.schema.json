@@ -36,33 +36,21 @@
         },
         "colors": {
           "type": "object",
-          "properties": {
-            "name": {
-              "type": "string",
-              "pattern": "^#[0-9a-fA-F]{6}$"
-            },
-            "contact": {
-              "type": "string",
-              "pattern": "^#[0-9a-fA-F]{6}$"
-            },
-            "heading": {
-              "type": "string",
-              "pattern": "^#[0-9a-fA-F]{6}$"
-            },
-            "entry": {
-              "type": "string",
-              "pattern": "^#[0-9a-fA-F]{6}$"
-            },
-            "text": {
-              "type": "string",
-              "pattern": "^#[0-9a-fA-F]{6}$"
-            },
-            "rule": {
-              "type": "string",
-              "pattern": "^#[0-9a-fA-F]{6}$"
-            }
+          "propertyNames": {
+            "type": "string",
+            "enum": [
+              "name",
+              "contact",
+              "heading",
+              "entry",
+              "text",
+              "rule"
+            ]
           },
-          "additionalProperties": false
+          "additionalProperties": {
+            "type": "string",
+            "pattern": "^#[0-9a-fA-F]{6}$"
+          }
         },
         "margin": {
           "description": "In pt.",
@@ -84,7 +72,7 @@
           "additionalProperties": false
         },
         "spacing": {
-          "description": "Vertical gaps in pt; see template/resume.typ for defaults.",
+          "description": "Vertical gaps in pt; defaults in template/defaults.json.",
           "type": "object",
           "propertyNames": {
             "type": "string",
@@ -386,7 +374,7 @@
           "key": {
             "type": "string",
             "pattern": "^[a-z][a-z0-9-]*$",
-            "description": "Referenced from meta.sectionOrder."
+            "description": "Unique; referenced from meta.sectionOrder."
           },
           "title": {
             "type": "string",
@@ -420,8 +408,7 @@
         },
         "required": [
           "key",
-          "title",
-          "bullets"
+          "title"
         ],
         "additionalProperties": false
       }

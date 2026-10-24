@@ -1,0 +1,32 @@
+{
+  "fonts": ["Carlito", "Calibri"],
+  "fontSize": 10,
+  "colors": {
+    "name": "#1F1F1F",
+    "contact": "#1F497D",
+    "heading": "#2E74B5",
+    "entry": "#444444",
+    "text": "#000000",
+    "rule": "#000000"
+  },
+  "margin": { "top": 14.6, "bottom": 20, "left": 36, "right": 37.5 },
+  "spacing": {
+    "leading": 4.2,
+    "paragraph": 5,
+    "bullet": 4.5,
+    "name-contact": 10.7,
+    "section-before": 12.05,
+    "title-rule": 3.25,
+    "rule-content": 3.9,
+    "entry-title-sub": 2.55,
+    "entry-sub-bullets": 3.9,
+    "entry-gap": 19.05,
+    "project-desc": 10.25
+  },
+  "sectionTitles": {
+    "skills": "Technical Skills",
+    "experience": "Work Experience",
+    "education": "Education",
+    "projects": "Projects"
+  }
+}

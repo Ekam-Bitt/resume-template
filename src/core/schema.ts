@@ -1,6 +1,10 @@
 // The resume data model. This is the contract between the template, the web
 // editor and agents; `npm run resume -- schema` regenerates the JSON Schema.
 import { z } from 'zod'
+import defaults from '../../template/defaults.json' with { type: 'json' }
+
+/** Template defaults (fonts, colors, margins, spacing, section titles), shared with the editor. */
+export const DEFAULTS = defaults
 
 const text = z.string().describe('Plain text. `**bold**` is the only markup.')
 const hidden = z.boolean().optional().describe('Keep the item in the file but leave it out of the PDF.')
@@ -60,18 +64,15 @@ export const Project = z.strictObject({
 })
 
 export const CustomSection = z.strictObject({
-  key: z.string().regex(/^[a-z][a-z0-9-]*$/).describe('Referenced from meta.sectionOrder.'),
+  key: z.string().regex(/^[a-z][a-z0-9-]*$/).describe('Unique; referenced from meta.sectionOrder.'),
   title: z.string().min(1),
-  bullets: z.array(Bullet),
+  bullets: z.array(Bullet).optional(),
   hidden,
 })
 
 export const BUILTIN_SECTIONS = ['skills', 'experience', 'education', 'projects'] as const
 
-export const SPACING_KEYS = [
-  'leading', 'paragraph', 'bullet', 'name-contact', 'section-before', 'title-rule',
-  'rule-content', 'entry-title-sub', 'entry-sub-bullets', 'entry-gap', 'project-desc',
-] as const
+const keysOf = (o: object) => Object.keys(o) as [string, ...string[]]
 
 const hex = z.string().regex(/^#[0-9a-fA-F]{6}$/)
 
@@ -80,13 +81,11 @@ export const Meta = z.strictObject({
   maxPages: z.number().int().min(1).optional().describe('Lint fails above this. Default 1.'),
   fontSize: z.number().min(7).max(14).optional().describe('Body size in pt. Default 10.'),
   fonts: z.array(z.string()).optional().describe('Font fallback list. Default ["Carlito", "Calibri"].'),
-  colors: z.strictObject({
-    name: hex, contact: hex, heading: hex, entry: hex, text: hex, rule: hex,
-  }).partial().optional(),
+  colors: z.partialRecord(z.enum(keysOf(defaults.colors)), hex).optional(),
   margin: z.strictObject({ top: z.number(), bottom: z.number(), left: z.number(), right: z.number() })
     .partial().optional().describe('In pt.'),
-  spacing: z.partialRecord(z.enum(SPACING_KEYS), z.number()).optional()
-    .describe('Vertical gaps in pt; see template/resume.typ for defaults.'),
+  spacing: z.partialRecord(z.enum(keysOf(defaults.spacing)), z.number()).optional()
+    .describe('Vertical gaps in pt; defaults in template/defaults.json.'),
   sectionOrder: z.array(z.string()).optional(),
   sectionTitles: z.partialRecord(z.enum(BUILTIN_SECTIONS), z.string()).optional(),
 })
@@ -101,9 +100,15 @@ export const Resume = z.strictObject({
   projects: z.array(Project).optional(),
   custom: z.array(CustomSection).optional(),
 }).superRefine((r, ctx) => {
-  const known = new Set<string>([...BUILTIN_SECTIONS, ...(r.custom ?? []).map(s => s.key)])
+  const seen = new Set<string>(BUILTIN_SECTIONS)
+  r.custom?.forEach((s, i) => {
+    if (seen.has(s.key)) {
+      ctx.addIssue({ code: 'custom', path: ['custom', i, 'key'], message: `Section key "${s.key}" is already used` })
+    }
+    seen.add(s.key)
+  })
   r.meta?.sectionOrder?.forEach((key, i) => {
-    if (!known.has(key)) {
+    if (!seen.has(key)) {
       ctx.addIssue({ code: 'custom', path: ['meta', 'sectionOrder', i], message: `Unknown section "${key}"` })
     }
   })

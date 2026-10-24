@@ -1,30 +1,37 @@
 <template>
   <div class="json-editor">
     <p class="hint">
-      The same document agents edit. Must match <code>schema/resume.schema.json</code>; invalid JSON is not applied.
+      The same document agents edit. Must match <code>schema/resume.schema.json</code>; changes apply only while it is valid.
     </p>
     <textarea v-model="text" class="input code" spellcheck="false" @input="apply" />
     <p v-if="parseError" class="error">{{ parseError }}</p>
+    <p v-for="(i, n) in issues" :key="n" class="error"><code>{{ i.path }}</code> {{ i.message }}</p>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref } from 'vue'
-import type { Resume } from '../../../src/core/schema.ts'
-import { clean, setFromJson } from '../store.ts'
+import { validate, type Resume, type ValidationIssue } from '../../../src/core/schema.ts'
+import { serialize, setFromJson } from '../store.ts'
 
 const props = defineProps<{ resume: Resume }>()
-const text = ref(JSON.stringify(clean(props.resume), null, 2))
+const text = ref(serialize(props.resume))
 const parseError = ref('')
+const issues = ref<ValidationIssue[]>([])
 
+// Only schema-valid JSON reaches the editor, so the form never sees a broken document.
 function apply() {
+  let data: unknown
   try {
-    const data = JSON.parse(text.value)
+    data = JSON.parse(text.value)
     parseError.value = ''
-    setFromJson(data)
   } catch (e) {
     parseError.value = (e as Error).message
+    return
   }
+  const v = validate(data)
+  issues.value = v.ok ? [] : v.issues
+  if (v.ok) setFromJson(v.resume)
 }
 </script>
 

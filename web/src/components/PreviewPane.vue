@@ -33,7 +33,6 @@ import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 
 const props = defineProps<{
   svg: string
-  size: { width: number; height: number }
   pageSizes: { width: number; height: number }[]
   error: string
 }>()
@@ -56,8 +55,14 @@ onMounted(() => {
 })
 onBeforeUnmount(() => observer?.disconnect())
 
+// Pages stack vertically; before the first render, assume one A4 page.
+const size = computed(() => ({
+  width: Math.max(595.28, ...props.pageSizes.map(p => p.width)),
+  height: props.pageSizes.reduce((sum, p) => sum + p.height, 0) || 841.89,
+}))
+
 const fitZoom = computed(() => {
-  const width = (props.size.width || 595.28) * PX_PER_PT
+  const width = size.value.width * PX_PER_PT
   return Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, (paneWidth.value - GUTTER) / width))
 })
 const scale = computed(() => (fit.value ? fitZoom.value : manualZoom.value))

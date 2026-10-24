@@ -3,10 +3,14 @@
     <header class="topbar">
       <div class="brand">Resume</div>
       <select v-if="hasFileApi" :value="state.current" class="input select" aria-label="Resume" @change="onSwitch">
-        <option v-for="n in state.names" :key="n" :value="n">{{ n === 'base' ? 'base (master)' : n === 'sample' ? 'sample (John Doe)' : n }}</option>
+        <option v-for="{ name } in state.names" :key="name" :value="name">{{ LABELS[name] ?? name }}</option>
       </select>
       <button v-if="hasFileApi" class="text-btn" title="Copy the current resume to a new variant" @click="onNewVariant">+ Variant</button>
       <span class="status" :class="state.status">{{ statusLabel }}</span>
+      <template v-if="state.status === 'conflict'">
+        <button class="text-btn" title="Discard your unsaved edits and load what is on disk" @click="resolveConflict('disk')">Load disk version</button>
+        <button class="text-btn" title="Overwrite the file on disk with what is in the editor" @click="resolveConflict('mine')">Keep mine</button>
+      </template>
       <span class="spacer" />
       <button v-if="report" class="badge" :class="report.ok ? 'good' : 'bad'" title="Show layout checks" @click="showLint = !showLint">
         {{ report.pages }}/{{ report.maxPages }} page{{ report.maxPages > 1 ? 's' : '' }}
@@ -21,8 +25,8 @@
       </button>
     </header>
 
-    <div v-if="showLint && (report?.issues.length || state.issues.length)" class="lint">
-      <div v-for="(i, n) in state.issues" :key="'v' + n" class="lint-row error">
+    <div v-if="showLint && (report?.issues.length || issues.length)" class="lint">
+      <div v-for="(i, n) in issues" :key="'v' + n" class="lint-row error">
         <span class="tag">invalid</span><code>{{ i.path }}</code> {{ i.message }}
       </div>
       <button v-for="(i, n) in report?.issues ?? []" :key="n" class="lint-row" :class="i.level" @click="focusPath(i.path)">
@@ -41,7 +45,7 @@
           <JsonEditor v-else :key="`${state.current}:${state.revision}:json`" :resume="resume" />
         </div>
       </div>
-      <PreviewPane class="right" :svg="preview.svg" :size="preview.size" :page-sizes="preview.pageSizes" :error="previewError" />
+      <PreviewPane class="right" :svg="preview.svg" :page-sizes="preview.pageSizes" :error="previewError" />
     </main>
     <div v-else class="loading">{{ state.status === 'error' ? state.error : 'Loading…' }}</div>
   </div>
@@ -50,55 +54,63 @@
 <script setup lang="ts">
 import { computed, nextTick, reactive, ref, shallowRef, watch } from 'vue'
 import { lint, type LintReport } from '../../src/core/lint.ts'
-import { validate, type Resume } from '../../src/core/schema.ts'
+import { validate } from '../../src/core/schema.ts'
 import Editor from './components/Editor.vue'
 import JsonEditor from './components/JsonEditor.vue'
 import PreviewPane from './components/PreviewPane.vue'
-import { clean, createVariant, hasFileApi, load, replaceResume, resetToBundled, resume, state } from './store.ts'
-import { renderPdf, renderPreview } from './typst.ts'
+import {
+  checked, createVariant, hasFileApi, issues, load, replaceResume, resetToBundled, resolveConflict, resume, serialize, state,
+} from './store.ts'
+import { renderPdf, renderPreview, warmUp } from './typst.ts'
+
+const LABELS: Record<string, string> = { base: 'base (master)', sample: 'sample (John Doe)' }
 
 const tab = ref<'form' | 'json'>('form')
 const showLint = ref(false)
 const downloading = ref(false)
-const preview = reactive({ svg: '', size: { width: 595.28, height: 841.89 }, pageSizes: [] as { width: number; height: number }[] })
+const preview = reactive({ svg: '', pageSizes: [] as { width: number; height: number }[] })
 const previewError = ref('')
 const report = shallowRef<LintReport | null>(null)
 const warnings = computed(() => report.value?.issues.filter(i => i.level === 'warn').length ?? 0)
 
 const statusLabel = computed(() => ({
   loading: 'Loading…',
-  saved: hasFileApi ? `Saved to data/${['base', 'sample'].includes(state.current) ? state.current : `variants/${state.current}`}.json` : 'Saved in this browser',
+  saved: hasFileApi ? `Saved to ${state.names.find(n => n.name === state.current)?.file ?? state.current}` : 'Saved in this browser',
   saving: 'Saving…',
   unsaved: 'Editing…',
-  invalid: `Not saved: ${state.issues.length} validation issue${state.issues.length === 1 ? '' : 's'}`,
+  invalid: `Not saved: ${issues.value.length} validation issue${issues.value.length === 1 ? '' : 's'}`,
+  conflict: 'Changed on disk (by an agent or the CLI) while you were editing',
   error: `Error: ${state.error}`,
 })[state.status])
 
+// The compiler download overlaps with loading the resume.
+warmUp().catch(e => (previewError.value = (e as Error).message))
 load(new URLSearchParams(location.search).get('r') ?? 'base')
 
-// Re-render the preview as the resume changes. Invalid data keeps the last good preview.
+// Re-render the preview when the saved form of the resume changes (edits that
+// clean away, like a blank bullet, don't recompile). Invalid data keeps the
+// last good preview. The first render runs immediately, later ones debounce.
 let timer: ReturnType<typeof setTimeout> | undefined
 let seq = 0
-watch(resume, () => {
+let rendered = ''
+watch(checked, c => {
+  if (!c?.ok || c.json === rendered) return
   clearTimeout(timer)
   timer = setTimeout(async () => {
-    if (!resume.value) return
-    const data = clean(resume.value)
-    const v = validate(data)
-    if (!v.ok) return
     const mine = ++seq
+    rendered = c.json
     try {
-      const p = await renderPreview(v.resume)
+      const p = await renderPreview(c.json)
       if (mine !== seq) return
-      Object.assign(preview, { svg: p.svg, size: p.size, pageSizes: p.pageSizes })
-      report.value = lint(v.resume, p.page, p.probes)
+      Object.assign(preview, { svg: p.svg, pageSizes: p.pageSizes })
+      report.value = lint(c.resume, p.page, p.probes)
       if (!report.value.ok) showLint.value = true
       previewError.value = ''
     } catch (e) {
       if (mine === seq) previewError.value = (e as Error).message
     }
-  }, 250)
-}, { deep: true, immediate: true })
+  }, preview.svg ? 250 : 0)
+}, { immediate: true })
 
 function onSwitch(e: Event) {
   const name = (e.target as HTMLSelectElement).value
@@ -133,19 +145,20 @@ const fileBase = () => {
 }
 
 async function downloadPdf() {
-  if (!resume.value) return
-  const v = validate(clean(resume.value))
-  if (!v.ok) return alert('Fix the validation issues first.')
+  const c = checked.value
+  if (!c?.ok) return alert('Fix the validation issues first.')
   downloading.value = true
   try {
-    saveFile(`${fileBase()}.pdf`, (await renderPdf(v.resume)) as BlobPart, 'application/pdf')
+    saveFile(`${fileBase()}.pdf`, (await renderPdf(c.json)) as BlobPart, 'application/pdf')
+  } catch (e) {
+    alert(`Could not create the PDF: ${(e as Error).message}`)
   } finally {
     downloading.value = false
   }
 }
 
 function exportJson() {
-  if (resume.value) saveFile(`${fileBase()}.json`, JSON.stringify(clean(resume.value), null, 2) + '\n', 'application/json')
+  if (resume.value) saveFile(`${fileBase()}.json`, serialize(resume.value), 'application/json')
 }
 
 function importJson() {
@@ -154,10 +167,12 @@ function importJson() {
     const file = input.files?.[0]
     if (!file) return
     try {
-      const data = JSON.parse(await file.text()) as Resume
-      const v = validate(data)
-      if (!v.ok && !confirm(`This file has ${v.issues.length} validation issue(s). Import anyway?`)) return
-      replaceResume(data)
+      const v = validate(JSON.parse(await file.text()))
+      if (!v.ok) {
+        const list = v.issues.slice(0, 8).map(i => `${i.path}: ${i.message}`).join('\n')
+        return alert(`${file.name} is not a valid resume:\n${list}`)
+      }
+      replaceResume(v.resume)
     } catch (e) {
       alert(`Could not read ${file.name}: ${(e as Error).message}`)
     }
@@ -165,9 +180,10 @@ function importJson() {
   input.click()
 }
 
-/** Jumps from a lint row to the field it refers to. */
+/** Jumps from a lint row to the field it refers to; cards and entries on the path open for it. */
 async function focusPath(path: string) {
   tab.value = 'form'
+  state.focus = path
   await nextTick()
   const el = document.querySelector<HTMLElement>(`[data-path="${path}"]`)
   if (!el) return

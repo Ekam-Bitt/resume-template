@@ -1,6 +1,6 @@
 <template>
   <div class="editor">
-    <SectionCard title="Header" start-open>
+    <SectionCard title="Header" section="/basics" start-open>
       <div class="grid">
         <label class="field full"><span>Name</span><input v-model="r.basics.name" class="input" /></label>
         <label class="field"><span>Email</span><input v-model="r.basics.email" class="input" type="email" /></label>
@@ -24,15 +24,15 @@
       <VueDraggable v-model="r.meta!.sectionOrder!" :animation="150" class="order">
         <div v-for="key in r.meta!.sectionOrder" :key="key" class="order-row">
           <span class="handle" aria-hidden="true">⠿</span>
-          <input v-if="isBuiltin(key)" v-model="titles[key]" class="input" :placeholder="DEFAULT_TITLES[key]" />
-          <input v-else v-model="customByKey(key)!.title" class="input" />
+          <input v-if="isBuiltin(key)" v-model="titles[key]" class="input" :placeholder="DEFAULTS.sectionTitles[key]" />
+          <input v-else-if="customByKey(key)" v-model="customByKey(key)!.title" class="input" />
           <span class="key">{{ key }}</span>
         </div>
       </VueDraggable>
     </SectionCard>
 
-    <SectionCard title="Technical skills" :count="r.skills!.length">
-      <EntryList v-model="r.skills!" noun="skill group" :make="() => ({ category: '', items: [] })"
+    <SectionCard title="Technical skills" section="/skills" :count="r.skills!.length">
+      <EntryList v-model="r.skills!" path="/skills" noun="skill group" :make="() => ({ category: '', items: [] })"
         :title="s => s.category" :subtitle="s => s.items.join(', ')">
         <template #default="{ item, index }">
           <label class="field"><span>Category</span><input v-model="item.category" class="input" /></label>
@@ -45,8 +45,8 @@
       </EntryList>
     </SectionCard>
 
-    <SectionCard title="Work experience" :count="r.experience!.length" start-open>
-      <EntryList v-model="r.experience!" noun="position" :make="() => ({ company: '', bullets: [] })"
+    <SectionCard title="Work experience" section="/experience" :count="r.experience!.length" start-open>
+      <EntryList v-model="r.experience!" path="/experience" noun="position" :make="() => ({ company: '', bullets: [] })"
         :title="e => e.company" :subtitle="e => [e.role, dates(e)].filter(Boolean).join(' · ')">
         <template #default="{ item, index }">
           <div class="grid">
@@ -57,13 +57,13 @@
             <label class="field"><span>End</span><input v-model="item.end" class="input" placeholder="Present" /></label>
           </div>
           <div class="sub-label">Bullets</div>
-          <BulletList :model-value="ensure(item, 'bullets')" @update:model-value="v => (item.bullets = v)" :path="`/experience/${index}/bullets`" />
+          <BulletList v-model="item.bullets" :path="`/experience/${index}/bullets`" />
         </template>
       </EntryList>
     </SectionCard>
 
-    <SectionCard title="Education" :count="r.education!.length">
-      <EntryList v-model="r.education!" noun="school" :make="() => ({ institution: '' })"
+    <SectionCard title="Education" section="/education" :count="r.education!.length">
+      <EntryList v-model="r.education!" path="/education" noun="school" :make="() => ({ institution: '', details: [] })"
         :title="e => e.institution" :subtitle="e => [e.degree, dates(e)].filter(Boolean).join(' · ')">
         <template #default="{ item, index }">
           <div class="grid">
@@ -74,13 +74,13 @@
             <label class="field full"><span>Location (optional)</span><input v-model="item.location" class="input" /></label>
           </div>
           <div class="sub-label">Details (optional)</div>
-          <BulletList :model-value="ensure(item, 'details')" @update:model-value="v => (item.details = v)" :path="`/education/${index}/details`" label="Detail" />
+          <BulletList v-model="item.details" :path="`/education/${index}/details`" label="Detail" />
         </template>
       </EntryList>
     </SectionCard>
 
-    <SectionCard title="Projects" :count="r.projects!.length">
-      <EntryList v-model="r.projects!" noun="project" :make="() => ({ name: '' })"
+    <SectionCard title="Projects" section="/projects" :count="r.projects!.length">
+      <EntryList v-model="r.projects!" path="/projects" noun="project" :make="() => ({ name: '', bullets: [] })"
         :title="p => p.name" :subtitle="p => p.url ?? ''">
         <template #default="{ item, index }">
           <div class="grid">
@@ -92,14 +92,14 @@
             <AutoTextarea v-model="item.description" :data-path="`/projects/${index}/description`" />
           </label>
           <div class="sub-label">Bullets (optional)</div>
-          <BulletList :model-value="ensure(item, 'bullets')" @update:model-value="v => (item.bullets = v)" :path="`/projects/${index}/bullets`" />
+          <BulletList v-model="item.bullets" :path="`/projects/${index}/bullets`" />
         </template>
       </EntryList>
     </SectionCard>
 
-    <SectionCard title="Custom sections" :count="r.custom!.length">
+    <SectionCard title="Custom sections" section="/custom" :count="r.custom!.length">
       <p class="hint">Extra sections such as Achievements or Publications: a title plus bullets.</p>
-      <EntryList v-model="r.custom!" noun="section" :make="makeCustom" :title="s => s.title" :subtitle="s => s.key">
+      <EntryList v-model="r.custom!" path="/custom" noun="section" :make="makeCustom" :copy="s => ({ ...s, key: freeKey() })" :title="s => s.title" :subtitle="s => s.key">
         <template #default="{ item, index }">
           <label class="field"><span>Title</span><input v-model="item.title" class="input" /></label>
           <BulletList v-model="item.bullets" :path="`/custom/${index}/bullets`" />
@@ -121,7 +121,7 @@
       </div>
       <div class="sub-label">Colors</div>
       <div class="colors">
-        <label v-for="(def, key) in DEFAULT_COLORS" :key="key" class="color">
+        <label v-for="(def, key) in DEFAULTS.colors" :key="key" class="color">
           <input type="color" :value="colors[key] ?? def" @input="e => (colors[key] = (e.target as HTMLInputElement).value.toUpperCase())" />
           <span>{{ key }}</span>
         </label>
@@ -132,9 +132,9 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, watch } from 'vue'
 import { VueDraggable } from 'vue-draggable-plus'
-import type { Resume } from '../../../src/core/schema.ts'
+import { BUILTIN_SECTIONS, DEFAULTS, type Resume } from '../../../src/core/schema.ts'
 import { keyOf } from '../keys.ts'
 import AutoTextarea from './AutoTextarea.vue'
 import BulletList from './BulletList.vue'
@@ -144,13 +144,13 @@ import SectionCard from './SectionCard.vue'
 const props = defineProps<{ resume: Resume }>()
 const r = props.resume
 
-const DEFAULT_TITLES = { skills: 'Technical Skills', experience: 'Work Experience', education: 'Education', projects: 'Projects' }
-const DEFAULT_COLORS = { name: '#1F1F1F', contact: '#1F497D', heading: '#2E74B5', entry: '#444444', text: '#000000', rule: '#000000' }
-type Builtin = keyof typeof DEFAULT_TITLES
+type Builtin = (typeof BUILTIN_SECTIONS)[number]
 
-// The form needs every optional container to exist; empty ones are dropped again on save.
+// The form needs every optional container to exist; empty ones are dropped again
+// on save. The editor remounts whenever the resume is replaced, so this covers
+// loaded and imported data; new entries get theirs from `make`.
 r.meta ??= {}
-r.meta.sectionOrder ??= ['skills', 'experience', 'education', 'projects']
+r.meta.sectionOrder ??= [...BUILTIN_SECTIONS]
 r.meta.sectionTitles ??= {}
 r.meta.colors ??= {}
 r.basics.links ??= []
@@ -159,15 +159,15 @@ r.experience ??= []
 r.education ??= []
 r.projects ??= []
 r.custom ??= []
+r.experience.forEach(e => (e.bullets ??= []))
+r.education.forEach(e => (e.details ??= []))
+r.projects.forEach(p => (p.bullets ??= []))
+r.custom.forEach(s => (s.bullets ??= []))
 
 const titles = computed(() => r.meta!.sectionTitles!)
 const colors = computed(() => r.meta!.colors! as Record<string, string>)
-const isBuiltin = (key: string): key is Builtin => key in DEFAULT_TITLES
+const isBuiltin = (key: string): key is Builtin => (BUILTIN_SECTIONS as readonly string[]).includes(key)
 const customByKey = (key: string) => r.custom!.find(s => s.key === key)
-
-function ensure<T extends object, K extends keyof T>(item: T, key: K): NonNullable<T[K]> {
-  return ((item[key] as unknown) ??= [] as unknown) as NonNullable<T[K]>
-}
 
 const dates = (e: { start?: string; end?: string; [key: string]: unknown }) => [e.start, e.end].filter(Boolean).join(' – ')
 
@@ -188,14 +188,25 @@ function splitItems(s: string) {
   return out.map(x => x.trim()).filter(Boolean)
 }
 
-function makeCustom() {
+/** A custom section key not used yet: section-1, section-2, … */
+function freeKey() {
   const taken = new Set(r.custom!.map(s => s.key))
   let n = 1
   while (taken.has(`section-${n}`)) n++
-  const key = `section-${n}`
-  r.meta!.sectionOrder!.push(key)
-  return { key, title: 'New Section', bullets: [] }
+  return `section-${n}`
 }
+
+const makeCustom = () => ({ key: freeKey(), title: 'New Section', bullets: [] })
+
+// Keeps meta.sectionOrder in step with the custom sections edited here:
+// removed sections leave the order, new ones join at the end.
+watch(() => r.custom!.map(s => s.key), () => {
+  const keys = r.custom!.map(s => s.key)
+  const order = r.meta!.sectionOrder!
+  const kept = order.filter(k => isBuiltin(k) || keys.includes(k))
+  const added = keys.filter(k => !kept.includes(k))
+  if (kept.length !== order.length || added.length) r.meta!.sectionOrder = [...kept, ...added]
+})
 </script>
 
 <style scoped>

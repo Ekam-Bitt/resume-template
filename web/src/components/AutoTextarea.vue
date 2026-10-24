@@ -1,5 +1,5 @@
 <template>
-  <textarea ref="el" v-model="model" rows="1" class="input auto" @input="resize" />
+  <textarea ref="el" v-model="model" rows="1" class="input auto" />
 </template>
 
 <script setup lang="ts">

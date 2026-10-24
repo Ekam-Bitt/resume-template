@@ -1,7 +1,30 @@
 // Layout and content checks that tell an agent what to fix: page overflow,
 // orphaned last lines, over-long bullets, broken bold markers.
-import type { PageInfo, Probe } from './render.ts'
+import fjp from 'fast-json-patch'
 import type { Resume } from './schema.ts'
+
+/** Per-block layout facts the template reports (`<lint>` metadata). */
+export type Probe = { id: string; lines: number; widow: boolean }
+/** Page facts the template reports (`<pages>` metadata). */
+export type PageInfo = {
+  pages: number
+  endY: number
+  pageHeight: number
+  topMargin: number
+  bottomMargin: number
+  linePitch: number
+}
+
+type Found = { value: unknown }[]
+
+/** Reads the template's metadata from query results; shared by the Node and browser compilers. */
+export function readLayout(pages: Found, probes: Found, fallbackPages: number) {
+  const page = (pages[0]?.value ?? {}) as Partial<PageInfo>
+  return {
+    page: { ...page, pages: page.pages ?? fallbackPages } as PageInfo,
+    probes: probes.map(m => m.value as Probe),
+  }
+}
 
 export type LintIssue = { level: 'error' | 'warn'; path: string; message: string }
 export type LintReport = {
@@ -16,8 +39,10 @@ export type LintReport = {
 const MAX_BULLET_LINES = 3
 
 function textAt(resume: Resume, pointer: string): string {
-  let node: unknown = resume
-  for (const key of pointer.split('/').slice(1)) node = (node as Record<string, unknown>)?.[key]
+  let node: unknown
+  try {
+    node = fjp.getValueByPointer(resume, pointer)
+  } catch {}
   if (Array.isArray(node)) return node.join(', ')
   return typeof node === 'string' ? node : ''
 }

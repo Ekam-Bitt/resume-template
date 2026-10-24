@@ -1,9 +1,10 @@
 // `npm run resume -- <command>`. Every command accepts --json for machine-readable output.
 import fs from 'node:fs'
 import path from 'node:path'
+import { parseArgs } from 'node:util'
 import {
-  build, check, createVariant, diff, InvalidResume, jsonSchema, listResumes, load, readJson,
-  resolveResume, ROOT, SCHEMA_FILE, validate, writeJson, type LintReport,
+  build, check, createVariant, diff, InvalidResume, jsonSchema, listResumes, load, ROOT, SCHEMA_FILE, writeJson,
+  type LintReport,
 } from '../core/index.ts'
 
 const HELP = `Usage: npm run resume -- <command> [args] [--json]
@@ -19,21 +20,25 @@ const HELP = `Usage: npm run resume -- <command> [args] [--json]
 
 ref: "base" (default), a variant slug, or a path to a .json file.`
 
-const argv = process.argv.slice(2)
-const flag = (name: string) => {
-  const i = argv.indexOf(name)
-  if (i < 0) return false
-  argv.splice(i, 1)
-  return true
-}
-const option = (name: string) => {
-  const i = argv.indexOf(name)
-  if (i < 0) return undefined
-  const [, value] = argv.splice(i, 2)
-  return value
-}
-
-const asJson = flag('--json')
+// Options may appear anywhere; unknown ones are an error rather than a positional.
+const { values: opts, positionals: argv } = (() => {
+  try {
+    return parseArgs({
+      allowPositionals: true,
+      options: {
+        json: { type: 'boolean' },
+        force: { type: 'boolean' },
+        out: { type: 'string', short: 'o' },
+        from: { type: 'string' },
+        help: { type: 'boolean', short: 'h' },
+      },
+    })
+  } catch (e) {
+    console.error(`${(e as Error).message}\n\n${HELP}`)
+    process.exit(2)
+  }
+})()
+const asJson = opts.json ?? false
 const print = (human: string, data: unknown) => console.log(asJson ? JSON.stringify(data, null, 2) : human)
 const rel = (f: string) => path.relative(process.cwd(), f) || f
 
@@ -43,7 +48,7 @@ function formatReport(r: LintReport) {
 }
 
 function run(): number {
-  const [cmd, ...args] = argv
+  const [cmd, ...args] = opts.help ? ['help'] : argv
   switch (cmd) {
     case 'list': {
       const all = listResumes().map(r => ({ name: r.name, file: rel(r.file) }))
@@ -51,11 +56,9 @@ function run(): number {
       return 0
     }
     case 'validate': {
-      const { file } = resolveResume(args[0])
-      const v = validate(readJson(file))
-      if (v.ok) print(`OK: ${rel(file)}`, { ok: true })
-      else print(new InvalidResume(v.issues).message, { ok: false, issues: v.issues })
-      return v.ok ? 0 : 1
+      const { file } = load(args[0])
+      print(`OK: ${rel(file)}`, { ok: true })
+      return 0
     }
     case 'lint': {
       const report = check(load(args[0]).resume)
@@ -63,16 +66,14 @@ function run(): number {
       return report.ok ? 0 : 1
     }
     case 'build': {
-      const out = option('-o')
-      const { pdfPath, report } = build(args[0], out && path.resolve(out))
+      const { pdfPath, report } = build(args[0], opts.out && path.resolve(opts.out))
       print(`Wrote ${rel(pdfPath)}\n${formatReport(report)}`, { pdf: pdfPath, ...report })
       return report.ok ? 0 : 1
     }
     case 'new-variant': {
-      const from = option('--from') ?? 'base'
-      const force = flag('--force')
+      const from = opts.from ?? 'base'
       if (!args[0]) throw new Error('new-variant needs a slug, e.g. new-variant acme-backend')
-      const { file } = createVariant(args[0], from, force)
+      const { file } = createVariant(args[0], from, opts.force)
       print(`Created ${rel(file)} from ${from}`, { file })
       return 0
     }
@@ -89,7 +90,6 @@ function run(): number {
     }
     case undefined:
     case 'help':
-    case '--help':
       console.log(HELP)
       return 0
     default:

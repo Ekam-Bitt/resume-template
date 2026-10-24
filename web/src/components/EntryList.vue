@@ -4,7 +4,7 @@
       <div v-for="(item, i) in model" :key="keyOf(item)" class="entry" :class="{ hidden: item.hidden }">
         <div class="entry-head">
           <span class="entry-handle" title="Drag to reorder" aria-hidden="true">⠿</span>
-          <button class="entry-toggle" :aria-expanded="open.has(keyOf(item))" @click="toggle(item)">
+          <button class="entry-toggle" :aria-expanded="isOpen(item, i)" @click="toggle(item, i)">
             <span class="entry-title">{{ title(item) || 'Untitled' }}</span>
             <span class="entry-sub">{{ subtitle?.(item) }}</span>
           </button>
@@ -13,7 +13,7 @@
           <button class="icon-btn" title="Duplicate" @click="duplicate(i)">⧉</button>
           <button class="icon-btn" title="Remove" @click="remove(i)">✕</button>
         </div>
-        <div v-if="open.has(keyOf(item))" class="entry-body">
+        <div v-if="isOpen(item, i)" class="entry-body">
           <slot :item="item" :index="i" />
         </div>
       </div>
@@ -23,9 +23,10 @@
 </template>
 
 <script setup lang="ts">
-import { reactive } from 'vue'
+import { computed, reactive } from 'vue'
 import { VueDraggable } from 'vue-draggable-plus'
 import { keyOf } from '../keys.ts'
+import { state } from '../store.ts'
 
 // Entries differ per section; the slot gets the entry as-is.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -33,17 +34,31 @@ type T = { hidden?: boolean; [key: string]: any }
 
 const model = defineModel<T[]>({ required: true })
 const props = defineProps<{
+  /** JSON Pointer of the array, e.g. "/experience", for revealing an entry from lint. */
+  path: string
   noun: string
   make: () => T
   title: (item: T) => string
   subtitle?: (item: T) => string
+  /** How Duplicate copies an entry; defaults to a deep copy. */
+  copy?: (item: T) => T
 }>()
 
 const open = reactive(new Set<number>())
-const toggle = (item: T) => {
+
+// The entry a lint row points into (e.g. "/experience/1/…") is open too.
+const focusedIndex = computed(() => {
+  const m = state.focus.slice(props.path.length).match(/^\/(\d+)(\/|$)/)
+  return state.focus.startsWith(props.path) && m ? Number(m[1]) : -1
+})
+const isOpen = (item: T, i: number) => open.has(keyOf(item)) || focusedIndex.value === i
+
+function toggle(item: T, i: number) {
   const k = keyOf(item)
-  if (open.has(k)) open.delete(k)
-  else open.add(k)
+  if (isOpen(item, i)) {
+    open.delete(k)
+    if (focusedIndex.value === i) state.focus = ''
+  } else open.add(k)
 }
 
 function add() {
@@ -52,7 +67,8 @@ function add() {
   open.add(keyOf(model.value[model.value.length - 1]))
 }
 function duplicate(i: number) {
-  model.value.splice(i + 1, 0, JSON.parse(JSON.stringify(model.value[i])))
+  const item = JSON.parse(JSON.stringify(model.value[i]))
+  model.value.splice(i + 1, 0, props.copy ? props.copy(item) : item)
 }
 function remove(i: number) {
   if (confirm(`Remove this ${props.noun}? Hiding keeps it in the file instead.`)) model.value.splice(i, 1)

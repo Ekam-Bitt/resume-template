@@ -8,11 +8,11 @@
           :data-path="`${path}/${i}/text`"
           :aria-label="`${label} ${i + 1}`"
           :placeholder="placeholder"
-          @keydown.meta.b.prevent="bold($event)"
-          @keydown.ctrl.b.prevent="bold($event)"
+          @keydown.meta.b.prevent="toggleBold($event.target as HTMLTextAreaElement, b)"
+          @keydown.ctrl.b.prevent="toggleBold($event.target as HTMLTextAreaElement, b)"
         />
         <div class="row-actions">
-          <button class="icon-btn" title="Bold selection (⌘B)" @mousedown.prevent="boldFocused(i)"><b>B</b></button>
+          <button class="icon-btn" title="Bold selection (⌘B)" @mousedown.prevent="toggleBold(field(i), b)"><b>B</b></button>
           <button class="icon-btn" :title="b.hidden ? 'Show on resume' : 'Hide from resume (keeps it in the file)'"
             @click="b.hidden = !b.hidden">{{ b.hidden ? '◌' : '●' }}</button>
           <button class="icon-btn" title="Remove" @click="remove(i)">✕</button>
@@ -37,7 +37,8 @@ const props = withDefaults(defineProps<{ path: string; label?: string; placehold
 })
 
 /** Wraps the textarea selection in ** **, or unwraps it if already bold. */
-function toggleBold(el: HTMLTextAreaElement, b: Bullet) {
+function toggleBold(el: HTMLTextAreaElement | null, b: Bullet) {
+  if (!el) return
   const { selectionStart: s, selectionEnd: e, value } = el
   if (s === e) return
   const sel = value.slice(s, e)
@@ -49,21 +50,12 @@ function toggleBold(el: HTMLTextAreaElement, b: Bullet) {
   nextTick(() => el.setSelectionRange(s + shift, e + shift))
 }
 
-function bold(ev: KeyboardEvent) {
-  const el = ev.target as HTMLTextAreaElement
-  const i = Number(el.dataset.path?.split('/').at(-2))
-  toggleBold(el, model.value[i])
-}
-
-function boldFocused(i: number) {
-  const el = document.querySelector<HTMLTextAreaElement>(`[data-path="${props.path}/${i}/text"]`)
-  if (el) toggleBold(el, model.value[i])
-}
+const field = (i: number) => document.querySelector<HTMLTextAreaElement>(`[data-path="${props.path}/${i}/text"]`)
 
 async function add() {
   model.value.push({ text: '' })
   await nextTick()
-  document.querySelector<HTMLTextAreaElement>(`[data-path="${props.path}/${model.value.length - 1}/text"]`)?.focus()
+  field(model.value.length - 1)?.focus()
 }
 
 function remove(i: number) {

@@ -69,7 +69,7 @@ Example prompts: *"Tailor my resume to this JD: …"*, *"Add a bullet about X to
 
 | Path | |
 |---|---|
-| `template/resume.typ` | The layout. Defaults were measured from the original PDF's content stream: A4, 36pt side margins, Calibri metrics, name 22pt `#1F1F1F`, contact `#1F497D`, section titles 11pt bold `#2E74B5` with a 1.5pt black rule, entry titles 11pt bold `#444444`, body 10pt with Word's 1.15 line spacing, no kerning or ligatures (Word defaults). |
+| `template/resume.typ`, `template/defaults.json` | The layout and its defaults (shared with the editor). Defaults were measured from the original PDF's content stream: A4, 36pt side margins, Calibri metrics, name 22pt `#1F1F1F`, contact `#1F497D`, section titles 11pt bold `#2E74B5` with a 1.5pt black rule, entry titles 11pt bold `#444444`, body 10pt with Word's 1.15 line spacing, no kerning or ligatures (Word defaults). |
 | `src/core/` | Schema (zod → `schema/resume.schema.json`), rendering, lint, patch/diff. Shared by the CLI, the MCP server and the web UI. |
 | `src/cli/`, `src/mcp/` | Agent interfaces. |
 | `web/` | Vue 3 editor. Its Typst service and preview pane are adapted from [resume-builder](https://github.com/gianfrancodemarco/resume-builder); see [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md). |
