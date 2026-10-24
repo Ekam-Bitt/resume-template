@@ -1,0 +1,7 @@
+# Never upload personal data with a CLI deploy (the Vercel CLI does not read .gitignore).
+data/base.json
+data/variants/
+out/
+/*.pdf
+node_modules/
+dist/
